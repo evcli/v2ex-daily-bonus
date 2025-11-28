@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# Build artifacts
+*.zip
+*.crx
+*.pem
+
+# Python
+*.pyc
+__pycache__/
+generate_icons.py
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

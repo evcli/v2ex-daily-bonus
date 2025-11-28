@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>V2EX Daily Bonus Settings</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            padding: 20px;
+            min-width: 300px;
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        .group {
+            margin-bottom: 20px;
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .group h3 {
+            margin-top: 0;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        input[type="number"] {
+            width: 60px;
+        }
+
+        button {
+            background: #333;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #555;
+        }
+
+        #status {
+            margin-top: 10px;
+            color: green;
+            font-size: 14px;
+            height: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Settings</h2>
+
+    <div class="group">
+        <h3>Daily Check-in</h3>
+        <label>
+            <input type="checkbox" id="checkInOnStartup">
+            Check-in on browser startup
+        </label>
+        <label>
+            Check-in interval (hours):
+            <input type="number" id="checkInInterval" min="1" value="3">
+        </label>
+    </div>
+
+    <div class="group">
+        <h3>Activity / Browsing</h3>
+        <label>
+            Browsing interval (minutes):
+            <input type="number" id="browsingInterval" min="1" value="60">
+        </label>
+        <label>
+            Topics to view per run:
+            <input type="number" id="topicCount" min="1" max="20" value="8">
+        </label>
+    </div>
+
+    <button id="save">Save Settings</button>
+    <div id="status"></div>
+
+    <script src="options.js"></script>
+</body>
+
+</html>
