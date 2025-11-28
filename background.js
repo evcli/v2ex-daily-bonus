@@ -131,7 +131,12 @@ async function performBrowsing() {
         const count = settings.topicCount;
 
         // 1. Fetch the recent page to get links
-        const response = await fetch('https://www.v2ex.com/recent');
+        const response = await fetch('https://www.v2ex.com/recent', {
+            headers: {
+                'Referer': 'https://www.v2ex.com/',
+                'Cache-Control': 'no-cache'
+            }
+        });
         const text = await response.text();
 
         // Regex to find topic links in href attributes. 
