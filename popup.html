@@ -57,6 +57,41 @@
             color: #9e9e9e;
         }
 
+        .member-activity-bar {
+            width: 100%;
+            /* Adjust to fit container */
+            background-color: #f0f0f0;
+            height: 3px;
+            margin-top: 5px;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .member-activity-done {
+            height: 3px;
+            background-color: #333
+        }
+
+        .member-activity-almost {
+            height: 3px;
+            background-color: #ffa800
+        }
+
+        .member-activity-half {
+            height: 3px;
+            background-color: #7ec222
+        }
+
+        .member-activity-fourth {
+            height: 3px;
+            background-color: #a9de62
+        }
+
+        .member-activity-start {
+            height: 3px;
+            background-color: #ccc
+        }
+
         .footer {
             margin-top: 15px;
             text-align: center;
@@ -76,6 +111,14 @@
         <div class="stat-item">
             <span class="label">浏览帖子:</span>
             <span id="visit-count" class="value">0</span>
+        </div>
+        <div class="stat-item" style="display: block;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span class="label">活跃度:</span>
+            </div>
+            <div class="member-activity-bar">
+                <div id="activity-bar-inner" class="member-activity-start" style="width: 0%;"></div>
+            </div>
         </div>
     </div>
     <div class="footer">

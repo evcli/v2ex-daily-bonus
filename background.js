@@ -78,12 +78,23 @@ async function updateDailyStats(updates) {
     // Apply updates
     if (updates.bonus_status) stats.bonus_status = updates.bonus_status;
     if (updates.increment_visit) stats.visit_count = (stats.visit_count || 0) + 1;
+    if (updates.activity_bar_class) stats.activity_bar_class = updates.activity_bar_class;
+    if (updates.activity_bar_style) stats.activity_bar_style = updates.activity_bar_style;
 
     await chrome.storage.local.set({ daily_stats: stats });
 }
 
 async function performCheckIn() {
     console.log('Performing daily check-in...');
+
+    // Check if already claimed today
+    const dateKey = new Date().toLocaleDateString();
+    const result = await chrome.storage.local.get(['daily_stats']);
+    if (result.daily_stats && result.daily_stats.date === dateKey && result.daily_stats.bonus_status === 'claimed') {
+        console.log('Daily bonus already claimed for today. Skipping check-in.');
+        return;
+    }
+
     try {
         // 1. Open the mission daily page
         const tab = await createTab('https://www.v2ex.com/mission/daily');
@@ -126,11 +137,23 @@ async function performCheckIn() {
 
 async function performBrowsing() {
     console.log('Performing periodic browsing...');
+
+    // Check if already reached limit today
+    const dateKey = new Date().toLocaleDateString();
+    const result = await chrome.storage.local.get(['daily_stats']);
+    if (result.daily_stats && result.daily_stats.date === dateKey) {
+        const cls = result.daily_stats.activity_bar_class;
+        if (cls && (cls.includes('member-activity-almost') || cls.includes('member-activity-done'))) {
+            console.log(`Daily activity limit already reached (${cls}). Skipping browsing.`);
+            return;
+        }
+    }
+
     try {
         const settings = await getSettings();
         const count = settings.topicCount;
 
-        // 1. Fetch the recent page to get links
+        // 1. Fetch the recent page to get links and activity status
         const response = await fetch('https://www.v2ex.com/recent', {
             headers: {
                 'Referer': 'https://www.v2ex.com/',
@@ -138,6 +161,33 @@ async function performBrowsing() {
             }
         });
         const text = await response.text();
+
+        // Extract Activity Bar Info
+        // Looking for: <div class="member-activity-bar"><div class="member-activity-almost" style="width: 100%;"></div></div>
+        // We capture the class name (e.g., member-activity-almost) and the style (e.g., width: 100%;)
+        const activityRegex = /class="member-activity-bar"\s*>\s*<div\s+class="([^"]+)"\s+style="([^"]+)"/i;
+        const activityMatch = text.match(activityRegex);
+
+        if (activityMatch) {
+            const activityClass = activityMatch[1]; // e.g., member-activity-almost
+            const activityStyle = activityMatch[2]; // e.g., width: 100%;
+
+            console.log(`Activity Bar Found: Class=${activityClass}, Style=${activityStyle}`);
+
+            await updateDailyStats({
+                activity_bar_class: activityClass,
+                activity_bar_style: activityStyle
+            });
+
+            // Check if we should stop browsing
+            // Stop if Orange (member-activity-almost) or Black/Done (member-activity-done)
+            if (activityClass.includes('member-activity-almost') || activityClass.includes('member-activity-done')) {
+                console.log(`Activity level reached limit (${activityClass}). Stopping browsing for today.`);
+                return;
+            }
+        } else {
+            console.log('Activity bar not found in page source.');
+        }
 
         // Regex to find topic links in href attributes. 
         // Matches href="/t/123456" or href="/t/123456#reply1"

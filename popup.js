@@ -7,14 +7,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // Check if stats are for today
         if (stats.date !== dateKey) {
             // If date doesn't match, it means no activity recorded for today yet
-            updateUI('unknown', 0);
+            updateUI({ bonus_status: 'unknown', visit_count: 0 });
         } else {
-            updateUI(stats.bonus_status, stats.visit_count);
+            updateUI(stats);
         }
     });
 });
 
-function updateUI(bonusStatus, visitCount) {
+function updateUI(stats) {
     const bonusEl = document.getElementById('bonus-status');
     const countEl = document.getElementById('visit-count');
 
@@ -22,13 +22,13 @@ function updateUI(bonusStatus, visitCount) {
     let statusClass = 'status-unknown';
 
     // Status values: 'claimed', 'unclaimed', 'maybe_claimed', 'unknown'
-    if (bonusStatus === 'claimed') {
+    if (stats.bonus_status === 'claimed') {
         statusText = '已领取';
         statusClass = 'status-claimed';
-    } else if (bonusStatus === 'unclaimed') {
+    } else if (stats.bonus_status === 'unclaimed') {
         statusText = '未领取';
         statusClass = 'status-unclaimed';
-    } else if (bonusStatus === 'maybe_claimed') {
+    } else if (stats.bonus_status === 'maybe_claimed') {
         statusText = '可能已领取';
         statusClass = 'status-claimed';
     }
@@ -36,5 +36,16 @@ function updateUI(bonusStatus, visitCount) {
     bonusEl.textContent = statusText;
     bonusEl.className = `value ${statusClass}`;
 
-    countEl.textContent = visitCount || 0;
+    countEl.textContent = stats.visit_count || 0;
+
+    // Update Activity Bar
+    const activityBarInner = document.getElementById('activity-bar-inner');
+    if (stats.activity_bar_class) {
+        activityBarInner.className = stats.activity_bar_class;
+    }
+    if (stats.activity_bar_style) {
+        // Ensure we only apply safe styles or just the width if needed, 
+        // but user asked to copy the style which usually contains width.
+        activityBarInner.style = stats.activity_bar_style;
+    }
 }
