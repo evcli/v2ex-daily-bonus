@@ -81,6 +81,8 @@ async function updateDailyStats(updates) {
     if (updates.activity_bar_class) stats.activity_bar_class = updates.activity_bar_class;
     if (updates.activity_bar_style) stats.activity_bar_style = updates.activity_bar_style;
 
+    stats.last_updated = new Date().toLocaleString();
+
     await chrome.storage.local.set({ daily_stats: stats });
 }
 
@@ -155,9 +157,12 @@ async function performBrowsing() {
 
         // 1. Fetch the recent page to get links and activity status
         const response = await fetch('https://www.v2ex.com/recent', {
+            method: 'GET',
+            cache: 'no-store', // Standard way to bypass cache
             headers: {
                 'Referer': 'https://www.v2ex.com/',
-                'Cache-Control': 'no-cache'
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
             }
         });
         const text = await response.text();

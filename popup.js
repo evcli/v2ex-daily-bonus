@@ -42,10 +42,19 @@ function updateUI(stats) {
     const activityBarInner = document.getElementById('activity-bar-inner');
     if (stats.activity_bar_class) {
         activityBarInner.className = stats.activity_bar_class;
+    } else {
+        // Reset to default if not present
+        activityBarInner.className = 'member-activity-start';
+        activityBarInner.style.width = '0%';
     }
+
     if (stats.activity_bar_style) {
-        // Ensure we only apply safe styles or just the width if needed, 
-        // but user asked to copy the style which usually contains width.
         activityBarInner.style = stats.activity_bar_style;
+    }
+
+    // Update Last Updated
+    const lastUpdatedEl = document.getElementById('last-updated');
+    if (lastUpdatedEl) {
+        lastUpdatedEl.textContent = stats.last_updated ? `更新于: ${stats.last_updated}` : '等待数据更新...';
     }
 }
