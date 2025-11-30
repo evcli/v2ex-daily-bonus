@@ -87,11 +87,15 @@ async function updateDailyStats(updates) {
 }
 
 async function performCheckIn() {
-    console.log('Performing daily check-in...');
+    console.log(`Performing daily check-in at ${new Date().toLocaleString()}...`);
 
     // Check if already claimed today
     const dateKey = new Date().toLocaleDateString();
     const result = await chrome.storage.local.get(['daily_stats']);
+
+    // Debug log to see current state
+    console.log('Current daily_stats:', result.daily_stats);
+
     if (result.daily_stats && result.daily_stats.date === dateKey && result.daily_stats.bonus_status === 'claimed') {
         console.log('Daily bonus already claimed for today. Skipping check-in.');
         return;
@@ -111,7 +115,8 @@ async function performCheckIn() {
                     if (button) {
                         button.click();
                         console.log('Check-in button clicked.');
-                        return 'claimed';
+                        // Don't assume success immediately. Return 'attempted' so we check again later.
+                        return 'attempted';
                     } else {
                         // Check for text indicating already claimed
                         if (document.body.innerText.includes('每日登录奖励已领取')) {
@@ -124,7 +129,9 @@ async function performCheckIn() {
             });
 
             if (results && results[0] && results[0].result) {
-                updateDailyStats({ bonus_status: results[0].result });
+                const status = results[0].result;
+                console.log('Check-in script result:', status);
+                updateDailyStats({ bonus_status: status });
             }
 
             // 4. Close tab after a delay
@@ -138,7 +145,7 @@ async function performCheckIn() {
 }
 
 async function performBrowsing() {
-    console.log('Performing periodic browsing...');
+    console.log(`Performing periodic browsing at ${new Date().toLocaleString()}...`);
 
     // Check if already reached limit today
     const dateKey = new Date().toLocaleDateString();
@@ -165,6 +172,11 @@ async function performBrowsing() {
                 'Pragma': 'no-cache'
             }
         });
+
+        if (!response.ok) {
+            throw new Error(`Network response was not ok: ${response.status} ${response.statusText}`);
+        }
+
         const text = await response.text();
 
         // Extract Activity Bar Info
