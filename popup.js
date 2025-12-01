@@ -1,10 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const dateKey = new Date().toLocaleDateString();
+    // Use UTC date to match background script logic
+    const dateKey = new Date().toISOString().slice(0, 10);
 
     chrome.storage.local.get(['daily_stats'], (result) => {
         const stats = result.daily_stats || {};
 
-        // Check if stats are for today
+        // Check if stats are for today (UTC)
         if (stats.date !== dateKey) {
             // If date doesn't match, it means no activity recorded for today yet
             updateUI({ bonus_status: 'unknown', visit_count: 0 });
@@ -13,7 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
-
 function updateUI(stats) {
     const bonusEl = document.getElementById('bonus-status');
     const countEl = document.getElementById('visit-count');
@@ -52,9 +52,27 @@ function updateUI(stats) {
         activityBarInner.style = stats.activity_bar_style;
     }
 
-    // Update Last Updated
+    // Update Last Updated Times
+    const localTimeEl = document.getElementById('local-time');
+    const utcTimeEl = document.getElementById('utc-time');
     const lastUpdatedEl = document.getElementById('last-updated');
-    if (lastUpdatedEl) {
-        lastUpdatedEl.textContent = stats.last_updated ? `更新于: ${stats.last_updated}` : '等待数据更新...';
+
+    if (stats.last_updated) {
+        const date = new Date(stats.last_updated);
+
+        // Format: YYYY/MM/DD HH:mm:ss
+        const localStr = date.toLocaleString('zh-CN', { hour12: false });
+        // Format: HH:mm:ss
+        const utcStr = date.toISOString().slice(11, 19);
+
+        if (localTimeEl) localTimeEl.textContent = localStr;
+        if (utcTimeEl) utcTimeEl.textContent = utcStr;
+
+        // Clear the old single-line display as we have the detailed one now
+        if (lastUpdatedEl) lastUpdatedEl.textContent = '';
+    } else {
+        if (localTimeEl) localTimeEl.textContent = '--';
+        if (utcTimeEl) utcTimeEl.textContent = '--';
+        if (lastUpdatedEl) lastUpdatedEl.textContent = '等待数据更新...';
     }
 }

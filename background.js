@@ -66,7 +66,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 async function updateDailyStats(updates) {
-    const dateKey = new Date().toLocaleDateString();
+    const dateKey = getV2EXDateKey();
     const result = await chrome.storage.local.get(['daily_stats']);
     let stats = result.daily_stats || { date: dateKey, bonus_status: 'unknown', visit_count: 0 };
 
@@ -81,7 +81,7 @@ async function updateDailyStats(updates) {
     if (updates.activity_bar_class) stats.activity_bar_class = updates.activity_bar_class;
     if (updates.activity_bar_style) stats.activity_bar_style = updates.activity_bar_style;
 
-    stats.last_updated = new Date().toLocaleString();
+    stats.last_updated = new Date().toISOString();
 
     await chrome.storage.local.set({ daily_stats: stats });
 }
@@ -90,7 +90,7 @@ async function performCheckIn() {
     console.log(`Performing daily check-in at ${new Date().toLocaleString()}...`);
 
     // Check if already claimed today
-    const dateKey = new Date().toLocaleDateString();
+    const dateKey = getV2EXDateKey();
     const result = await chrome.storage.local.get(['daily_stats']);
 
     // Debug log to see current state
@@ -110,12 +110,19 @@ async function performCheckIn() {
             // 3. Execute script to find and click the button
             const results = await chrome.scripting.executeScript({
                 target: { tabId: tab.id },
-                func: () => {
+                func: async () => {
                     const button = document.querySelector('input[type="button"][value^="领取"]');
                     if (button) {
                         button.click();
-                        console.log('Check-in button clicked.');
-                        // Don't assume success immediately. Return 'attempted' so we check again later.
+                        console.log('Check-in button clicked. Waiting for confirmation...');
+
+                        // Wait 3 seconds to allow the request to complete and UI to update
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+
+                        // Check if the success message appears
+                        if (document.body.innerText.includes('每日登录奖励已领取')) {
+                            return 'claimed';
+                        }
                         return 'attempted';
                     } else {
                         // Check for text indicating already claimed
@@ -148,7 +155,7 @@ async function performBrowsing() {
     console.log(`Performing periodic browsing at ${new Date().toLocaleString()}...`);
 
     // Check if already reached limit today
-    const dateKey = new Date().toLocaleDateString();
+    const dateKey = getV2EXDateKey();
     const result = await chrome.storage.local.get(['daily_stats']);
     if (result.daily_stats && result.daily_stats.date === dateKey) {
         const cls = result.daily_stats.activity_bar_class;
@@ -230,9 +237,38 @@ async function performBrowsing() {
 
                 await new Promise(resolve => setTimeout(resolve, stayTime));
 
+                // Check for activity bar update
+                try {
+                    const results = await chrome.scripting.executeScript({
+                        target: { tabId: tab.id },
+                        func: () => {
+                            const bar = document.querySelector('.member-activity-bar > div');
+                            if (bar) {
+                                return {
+                                    cls: bar.className,
+                                    style: bar.getAttribute('style')
+                                };
+                            }
+                            return null;
+                        }
+                    });
+
+                    let updates = { increment_visit: true };
+
+                    if (results && results[0] && results[0].result) {
+                        const { cls, style } = results[0].result;
+                        console.log(`Activity updated from topic: ${cls}`);
+                        updates.activity_bar_class = cls;
+                        updates.activity_bar_style = style;
+                    }
+                    await updateDailyStats(updates);
+                } catch (e) {
+                    console.warn('Failed to scrape activity from topic page:', e);
+                    await updateDailyStats({ increment_visit: true });
+                }
+
                 chrome.tabs.remove(tab.id);
                 console.log(`Successfully visited and closed: ${url}`);
-                updateDailyStats({ increment_visit: true });
             } catch (innerErr) {
                 console.error(`Failed to visit URL: ${url}`, innerErr);
             }
@@ -259,4 +295,13 @@ function createTab(url) {
             reject(e);
         }
     });
+}
+
+/**
+ * Generates a date key based on UTC time, as V2EX resets at 00:00 UTC.
+ * This corresponds to 08:00 China Standard Time.
+ */
+function getV2EXDateKey() {
+    // Returns YYYY-MM-DD in UTC
+    return new Date().toISOString().slice(0, 10);
 }

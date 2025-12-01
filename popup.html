@@ -104,6 +104,16 @@
             font-size: 10px;
             color: #ccc;
         }
+
+        .time-display {
+            margin-top: 10px;
+            font-size: 11px;
+            color: #666;
+            display: flex;
+            justify-content: space-around;
+            border-top: 1px solid #eee;
+            padding-top: 8px;
+        }
     </style>
 </head>
 
@@ -129,6 +139,10 @@
     </div>
     <div class="footer">
         V2EX Daily Bonus
+        <div class="time-display">
+            <div>本地: <span id="local-time">--:--:--</span></div>
+            <div>UTC: <span id="utc-time">--:--:--</span></div>
+        </div>
         <div id="last-updated" class="last-updated"></div>
     </div>
     <script src="popup.js"></script>
