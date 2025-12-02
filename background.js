@@ -8,7 +8,8 @@ const DEFAULT_SETTINGS = {
     checkInOnStartup: false,
     checkInInterval: 3,
     browsingInterval: 60,
-    topicCount: 8
+    topicCount: 8,
+    maxVisitCount: 80
 };
 
 // Initialize alarms on install or startup
@@ -154,19 +155,36 @@ async function performCheckIn() {
 async function performBrowsing() {
     console.log(`Performing periodic browsing at ${new Date().toLocaleString()}...`);
 
+    const settings = await getSettings();
+    const maxVisits = settings.maxVisitCount || 80;
+
     // Check if already reached limit today
     const dateKey = getV2EXDateKey();
     const result = await chrome.storage.local.get(['daily_stats']);
+
     if (result.daily_stats && result.daily_stats.date === dateKey) {
         const cls = result.daily_stats.activity_bar_class;
-        if (cls && (cls.includes('member-activity-almost') || cls.includes('member-activity-done'))) {
-            console.log(`Daily activity limit already reached (${cls}). Skipping browsing.`);
+        const visits = result.daily_stats.visit_count || 0;
+
+        // Check visit count
+        if (visits >= maxVisits) {
+            console.log(`Daily visit limit reached (${visits}/${maxVisits}). Skipping browsing.`);
+            return;
+        }
+
+        // Check activity class
+        if (cls && (
+            cls.includes('member-activity-done') ||
+            cls.includes('member-activity-almost') ||
+            cls.includes('member-activity-half')
+        )) {
+            console.log(`Daily activity limit reached (${cls}). Skipping browsing.`);
             return;
         }
     }
 
     try {
-        const settings = await getSettings();
+        // const settings = await getSettings(); // Already fetched above
         const count = settings.topicCount;
 
         // 1. Fetch the recent page to get links and activity status
@@ -204,8 +222,12 @@ async function performBrowsing() {
             });
 
             // Check if we should stop browsing
-            // Stop if Orange (member-activity-almost) or Black/Done (member-activity-done)
-            if (activityClass.includes('member-activity-almost') || activityClass.includes('member-activity-done')) {
+            // Stop if Orange (member-activity-almost), Black/Done (member-activity-done), or Half (member-activity-half)
+            if (
+                activityClass.includes('member-activity-done') ||
+                activityClass.includes('member-activity-almost') ||
+                activityClass.includes('member-activity-half')
+            ) {
                 console.log(`Activity level reached limit (${activityClass}). Stopping browsing for today.`);
                 return;
             }
